@@ -4,6 +4,7 @@
     {
         static void Main(string[] args)
         {
+
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("      Welcome To    ");
             Console.WriteLine(" +-+-+-+-+-+-+-+-+-+\r\n |W|h|a|t|I|s|F|u|n|\r\n +-+-+-+-+-+-+-+-+-+");

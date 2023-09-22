@@ -20,5 +20,6 @@ namespace BankSystem_Using_Entity_Framework
         public Account Account { get; set; }
         [ForeignKey("Account")]
         public int User_Id { get; set; }
+        
     }
 }

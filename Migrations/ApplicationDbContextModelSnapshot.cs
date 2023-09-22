@@ -44,7 +44,7 @@ namespace BankSystem_Using_Entity_Framework.Migrations
 
                     b.HasIndex("User_Id");
 
-                    b.ToTable("Accounts");
+                    b.ToTable("Accounts", (string)null);
                 });
 
             modelBuilder.Entity("BankSystem_Using_Entity_Framework.Transaction", b =>
@@ -78,7 +78,7 @@ namespace BankSystem_Using_Entity_Framework.Migrations
 
                     b.HasIndex("User_Id");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("BankSystem_Using_Entity_Framework.User", b =>
@@ -103,7 +103,7 @@ namespace BankSystem_Using_Entity_Framework.Migrations
 
                     b.HasKey("User_Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("BankSystem_Using_Entity_Framework.Account", b =>

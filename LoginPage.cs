@@ -10,11 +10,12 @@ namespace BankSystem_Using_Entity_Framework
 {
     internal class LoginPage
     {
-        public LoginPage()
+        public List<Account> userAccounts;
+        public LoginPage(List<Account> userAccount)
         {
+            this.userAccounts = userAccounts;
         }
-
-        public void Login()
+        public void Login(List<Account> userAccounts)
         {
             ProfilePage profilePage = new ProfilePage();
             // Prompt the user for email and password
@@ -40,7 +41,7 @@ namespace BankSystem_Using_Entity_Framework
                 Console.WriteLine("Login successful! Welcome, " + authenticatedUser.Name);
                 loading();
                 Console.Clear();
-                profilePage.profileMenu(authenticatedUser);
+                profilePage.profileMenu(authenticatedUser, userAccounts);
             }
         }
         private static User AuthenticateUser(string email, string password)

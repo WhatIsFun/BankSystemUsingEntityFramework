@@ -9,11 +9,12 @@ using System.Threading.Tasks;
 
 namespace BankSystem_Using_Entity_Framework
 {
-    internal class TransactionPage
+    public class TransactionPage
     {
         public void transactionMenu(List<Account> userAccounts, User authenticatedUser)
         {
             ProfilePage profilePage = new ProfilePage();
+            //profilePage.userAccounts = userAccounts;
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("$$$ $$ $ Transaction $ $$ $$$\n");
             Console.ResetColor();
@@ -28,12 +29,15 @@ namespace BankSystem_Using_Entity_Framework
                 switch (choice)
                 {
                     case "1":
+                        Console.Clear();
                         deposit(userAccounts);
                         break;
                     case "2":
+                        Console.Clear();
                         withdraw(userAccounts);
                         break;
                     case "3":
+                        Console.Clear();
                         transfer(userAccounts);
                         break;
                     case "4":
@@ -50,7 +54,7 @@ namespace BankSystem_Using_Entity_Framework
         void deposit(List<Account> userAccounts)
         {
             Console.Write("Enter the account number to deposit into: ");
-            if (!int.TryParse(Console.ReadLine(), out int accountNum))
+            if (!int.TryParse(Console.ReadLine(), out int sourceAccountId))
             {
                 Console.WriteLine("Invalid account number.");
                 return;
@@ -58,34 +62,34 @@ namespace BankSystem_Using_Entity_Framework
 
             if (userAccounts.Count == 0)
             {
-                Console.WriteLine("There are no accounts.");
+                Console.WriteLine("Add account first");
                 return;
             }
-
+            else if (!userAccounts.Any(account => account.Account_Id == sourceAccountId))
+            {
+                Console.WriteLine("Enter a valid account number.");
+                return;
+            }
             Console.Write("Enter the amount to deposit: ");
             if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
             {
                 Console.WriteLine("Invalid deposit amount.");
                 return;
             }
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            using (var context = new ApplicationDbContext())
             {
                 try
                 {
-                    connection.Open();
                     string type = "Deposit";
-                    string Timestamp1 = Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
-                    string Updatebalance = "Update Account set Balance = Balance + @Amount where Account_Id = @Account_Id;";
-                    SqlCommand Command = new SqlCommand(Updatebalance, connection);
-                    Command.Parameters.AddWithValue("@Amount", amount);
-                    Command.Parameters.AddWithValue("@Account_Id", accountNum);
+                    DateTime Timestamp = DateTime.Now;
+                    var dAccount = context.Accounts.FirstOrDefault(a => a.Account_Id == sourceAccountId);
 
-                    int rowaffected = Command.ExecuteNonQuery();
-
-                    if (rowaffected > 0)
+                    if (dAccount != null)
                     {
-                        RecordTransaction(Timestamp1, type, amount, accountNum, accountNum, accountNum);
+                        dAccount.Balance += amount;
+                        context.SaveChanges();
+
+                        RecordTransaction(Timestamp, type, amount, sourceAccountId, sourceAccountId, sourceAccountId);
                         Console.WriteLine("Transaction deposit added");
                         Console.WriteLine("\n\nPress Enter to go back...");
                         Console.ReadLine();
@@ -101,86 +105,71 @@ namespace BankSystem_Using_Entity_Framework
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
-                }
-                finally
-                {
-                    connection.Close();
+                    return;
                 }
             }
-            Console.WriteLine("\n\nPress Enter to go back...");
-            Console.ReadLine();
-            Console.Clear();
-            return;
         }
         void withdraw(List<Account> userAccounts)
         {
-            using (var context = new ApplicationDbContext())
+            if (!int.TryParse(Console.ReadLine(), out int sourceAccountId))
             {
-                var account = context.Accounts.FirstOrDefault(a => a.Account_Id == accountId);
-                Console.Write("Enter the account number to withdraw from: ");
-                if (!int.TryParse(Console.ReadLine(), out int accountNum))
-                {
-                    Console.WriteLine("Invalid account number.");
-                    return;
-                }
-
-                if (account == null)
-                {
-                    Console.WriteLine("Invalid account number.");
-                    return;
-                }
-
-                Console.Write("Enter the amount to withdraw: ");
-                if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
-                {
-                    Console.WriteLine("Invalid withdrawal amount.");
-                    return;
-                }
-
-                using (var transaction = context.Database.BeginTransaction())
-                {
-                    try
-                    {
-                        var type = "Withdrawal";
-                        var timestamp = DateTime.Now;
-
-                        // Update account balance
-                        account.Balance -= amount;
-                        context.SaveChanges();
-
-                        // Create a transaction record
-                        var transactionRecord = new Transaction
-                        {
-                            Timestamp = timestamp,
-                            Type = type,
-                            Amount = amount,
-                            SourceAccountId = accountId,
-                            TargetAccountId = accountId
-                        };
-
-                        context.Transactions.Add(transactionRecord);
-                        context.SaveChanges();
-
-                        transaction.Commit();
-
-                        Console.WriteLine("Withdrawal successful.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"An error occurred: {ex.Message}");
-                        transaction.Rollback();
-                    }
-                }
+                Console.WriteLine("Invalid account number.");
+                return;
             }
 
-            Console.WriteLine("\n\nPress Enter to go back...");
-            Console.ReadLine();
-            Console.Clear();
-            return;
+            if (userAccounts.Count == 0)
+            {
+                Console.WriteLine("Add account first");
+                return;
+            }
+            else if (!userAccounts.Any(account => account.Account_Id == sourceAccountId))
+            {
+                Console.WriteLine("Enter a valid account number.");
+                return;
+            }
+            Console.Write("Enter the amount to withdraw: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
+            {
+                Console.WriteLine("Invalid withdrawal amount.");
+                return;
+            }
+            using (var context = new ApplicationDbContext())
+            {
+                try
+                {
+                    string type = "Withdrawal";
+                    DateTime Timestamp = DateTime.Now;
+                    var dAccount = context.Accounts.FirstOrDefault(a => a.Account_Id == sourceAccountId);
+
+                    if (dAccount != null)
+                    {
+                        dAccount.Balance -= amount;
+                        context.SaveChanges();
+
+                        RecordTransaction(Timestamp, type, amount, sourceAccountId, sourceAccountId, sourceAccountId);
+                        Console.WriteLine("Transaction Withdrawal added");
+                        Console.WriteLine("\n\nPress Enter to go back...");
+                        Console.ReadLine();
+                        Console.Clear();
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid deposit.");
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    return;
+                }
+            }
         }
 
         void transfer(List<Account> userAccounts)
         {
+            DateTime Timestamp = DateTime.Now;
             Console.Write("Enter the account number to transfer from: ");
             if (!int.TryParse(Console.ReadLine(), out int sourceAccountId))
             {
@@ -193,91 +182,51 @@ namespace BankSystem_Using_Entity_Framework
                 Console.WriteLine("Add account first");
                 return;
             }
-            else if (userAccounts.Any(account => account.Account_Id != sourceAccountId))
+            else if (!userAccounts.Any(account => account.Account_Id == sourceAccountId))
             {
-                Console.WriteLine("Enter a valid account number ");
+                Console.WriteLine("Enter a valid account number.");
                 return;
             }
             else
             {
-                Console.Write("Enter the account number want to transfer to: ");
+                Console.Write("Enter the account number you want to transfer to: ");
                 if (!int.TryParse(Console.ReadLine(), out int targetAccountId))
                 {
                     Console.WriteLine("Invalid target account number.");
                     return;
                 }
-                using (SqlConnection connection = new SqlConnection(connectionString))
+
+                using (var context = new ApplicationDbContext())
                 {
                     try
                     {
-                        connection.Open();
-                        string selectSql = "SELECT Account_Id, AccountHolderName FROM Account WHERE Account_Id = @Account_Id";
-                        using (SqlCommand command = new SqlCommand(selectSql, connection))
+                        var sourceAccount = context.Accounts.FirstOrDefault(a => a.Account_Id == sourceAccountId);
+                        var targetAccount = context.Accounts.FirstOrDefault(a => a.Account_Id == targetAccountId);
+
+                        if (sourceAccount == null || targetAccount == null)
                         {
-                            command.Parameters.AddWithValue("@Account_Id", targetAccountId);
-
-                            object targetAccountResult = command.ExecuteScalar();
-
-                            if (targetAccountResult != null)
-                            {
-                                targetAccountId = (int)targetAccountResult;
-                                //string targetName = command["AccountHolderName"].ToString(); // Retrieve AccountHolderName from the result
-                            }
-                            else
-                            {
-                                Console.WriteLine("Target account not found.");
-                                return;
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                    }
-
-                }
-
-                Console.Write("Enter the amount to transfer: ");
-                if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
-                {
-                    Console.WriteLine("Invalid transfer amount.");
-                    return;
-                }
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    try
-                    {
-                        connection.Open();
-                        string type = "Transfer";
-                        string Timestamp1 = Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
-                        //int targetAccountid = targetAccountId;
-                        // Source
-                        string UpdateSourBalance = "Update Account set Balance = Balance - @Amount where Balance>@Amount and Account_Id = @Account_Id;";
-                        SqlCommand Command = new SqlCommand(UpdateSourBalance, connection);
-                        Command.Parameters.AddWithValue("@Amount", amount);
-                        Command.Parameters.AddWithValue("@Account_Id", sourceAccountId);
-
-                        Console.WriteLine("Transering successful");
-                        int rowaffected = Command.ExecuteNonQuery();
-                        if (rowaffected > 0)
-                        {
-
-                            RecordTransaction(Timestamp1, type, amount, sourceAccountId, targetAccountId, sourceAccountId);
-                            Console.WriteLine("Transaction added");
-                            Console.ReadLine();
+                            Console.WriteLine("Source or target account not found.");
                             return;
                         }
-                        // Target 
-                        string UpdateTargBalance = "Update Account set Balance = Balance + @Amount where Account_Id = @Account_Id;";
-                        SqlCommand Command1 = new SqlCommand(UpdateTargBalance, connection);
-                        Command1.Parameters.AddWithValue("@Amount", amount);
-                        Command1.Parameters.AddWithValue("@Account_Id", targetAccountId);
-
-
-                        int rowaffected1 = Command1.ExecuteNonQuery();
-                        if (rowaffected1 > 0)
+                        Console.Write("Enter the amount to transfer: ");
+                        if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
                         {
-                            RecordTransaction(Timestamp1, type, amount, sourceAccountId, targetAccountId, sourceAccountId);
+                            Console.WriteLine("Invalid withdrawal amount.");
+                            return;
+                        }
+                        if (sourceAccount.Balance >= amount)
+                        {
+                            // Perform the transfer
+                            string type = "Transfer";
+                            //string Timestamp1 = time;
+                           
+
+                            sourceAccount.Balance -= amount;
+                            targetAccount.Balance += amount;
+
+                            context.SaveChanges();
+
+                            RecordTransaction(Timestamp, type, amount, sourceAccountId, targetAccountId, sourceAccountId);
                             Console.WriteLine("Transaction added");
                             Console.WriteLine("\n\nPress Enter to go back...");
                             Console.ReadLine();
@@ -286,7 +235,7 @@ namespace BankSystem_Using_Entity_Framework
                         }
                         else
                         {
-                            Console.WriteLine("Invalid withdrawal amount or insufficient funds.");
+                            Console.WriteLine("Insufficient funds for the transfer.");
                             return;
                         }
                     }
@@ -294,45 +243,36 @@ namespace BankSystem_Using_Entity_Framework
                     {
                         Console.WriteLine(e.Message);
                     }
-                    finally
-                    {
-                        connection.Close();
-                    }
-                    Console.WriteLine("\n\nPress Enter to go back...");
-                    Console.ReadLine();
-                    Console.Clear();
-                    return;
                 }
             }
         }
-        private void RecordTransaction(string Timestamp1, string type, decimal amount, int sourceAccountId, int targetAccountId, int accountNum)
+
+        private void RecordTransaction(DateTime Timestamp1, string type, decimal amount, int sourceAccountId, int targetAccountId, int accountNum)
         {
-            using (SqlConnection sqlConnection = new SqlConnection(connectionString))
+            using (var context = new ApplicationDbContext())
             {
                 try
                 {
-                    sqlConnection.Open();
-                    string insertTransactionQuery = "INSERT INTO dbo.Transactions (Timestamp, Type, Amount, SourceAccountId, TargetAccountId, Account_Id) " +
-    "values (@Timestamp, @Type, @Amount, @SourceAccountId, @TargetAccountId, @Account_Id);";
-
-                    using (SqlCommand insertTransactionCommand = new SqlCommand(insertTransactionQuery, sqlConnection))
+                    var transaction = new Transaction
                     {
-                        insertTransactionCommand.Parameters.AddWithValue("@Timestamp", Timestamp1);
-                        insertTransactionCommand.Parameters.AddWithValue("@Type", type);
-                        insertTransactionCommand.Parameters.AddWithValue("@Amount", amount);
-                        insertTransactionCommand.Parameters.AddWithValue("@SourceAccountId", sourceAccountId); // Corrected parameter name
-                        insertTransactionCommand.Parameters.AddWithValue("@TargetAccountId", targetAccountId); // Corrected parameter name
-                        insertTransactionCommand.Parameters.AddWithValue("@Account_Id", accountNum);
+                        Timestamp = Timestamp1,
+                        Type = type,
+                        Amount = amount,
+                        SorAccId = sourceAccountId,
+                        TarAccId = targetAccountId,
+                        User_Id = accountNum
+                    };
 
-                        int rowsAffected = insertTransactionCommand.ExecuteNonQuery();
-                        if (rowsAffected > 0)
-                        {
-                            Console.WriteLine("Transaction recorded successfully.");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed to record the transaction.");
-                        }
+                    context.Transactions.Add(transaction);
+                    int rowsAffected = context.SaveChanges();
+
+                    if (rowsAffected > 0)
+                    {
+                        Console.WriteLine("Transaction recorded successfully.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to record the transaction.");
                     }
                 }
                 catch (Exception e)
@@ -341,14 +281,14 @@ namespace BankSystem_Using_Entity_Framework
                 }
             }
         }
+
         public void ViewTransactionHistory(User authenticatedUser, string period)
         {
-            DateTime minSqlDate = new DateTime(1753, 1, 1);
             DateTime startDate;
             switch (period.ToLower())
             {
                 case "last transaction":
-                    startDate = minSqlDate; // Set to minimum date
+                    startDate = DateTime.MinValue; // Set to minimum date
                     break;
                 case "last day":
                     startDate = DateTime.Now.AddDays(-1);
@@ -364,59 +304,42 @@ namespace BankSystem_Using_Entity_Framework
                     break;
                 default:
                     Console.WriteLine("Invalid period. Showing all transactions.");
-                    startDate = minSqlDate; // Set to minimum date
+                    startDate = DateTime.MinValue; // Set to minimum date
                     break;
             }
-            string connectionString = "Data Source=(local);Initial Catalog=BankSystem; Integrated Security=true";
-            using (SqlConnection sqlConnection = new SqlConnection(connectionString))
+
+            using (var context = new ApplicationDbContext())
             {
                 try
                 {
-                    sqlConnection.Open();
-                    string selectQuery = "SELECT Transaction_Id, Timestamp, Type, Amount, SourceAccountId, TargetAccountId FROM dbo.Transactions " +
-                        "WHERE (SourceAccountId IN (SELECT Account_Id FROM dbo.Account WHERE User_ID = @userId) " +
-                        "OR TargetAccountId IN (SELECT Account_Id FROM dbo.Account WHERE User_ID = @userId)) " +
-                        "AND Timestamp >= @startDate " +
-                        "ORDER BY Timestamp DESC";
-                    using (SqlCommand sqlCommand = new SqlCommand(selectQuery, sqlConnection))
+                    var userId = authenticatedUser.User_Id;
+
+                    var transactions = context.Transactions
+                        .Where(t => (t.SorAccId == userId || t.TarAccId == userId) && t.Timestamp >= startDate)
+                        .OrderByDescending(t => t.Timestamp)
+                        .ToList();
+
+                    if (transactions.Count > 0)
                     {
-                        sqlCommand.Parameters.AddWithValue("@userId", authenticatedUser.UserId);
-                        sqlCommand.Parameters.AddWithValue("@startDate", startDate);
-                        // Execute the query and read the results
-                        using (SqlDataReader reader = sqlCommand.ExecuteReader())
+                        Console.WriteLine($"Transaction History (Last {period}):");
+                        foreach (var transaction in transactions)
                         {
-                            if (reader.HasRows)
-                            {
-                                Console.WriteLine($"Transaction History (Last {period}):");
-                                while (reader.Read())
-                                {
-                                    int Transaction_Id = reader.GetInt32(0);
-                                    DateTime Timestamp = reader.GetDateTime(1);
-                                    string Type = reader.GetString(2);
-                                    decimal Amount = reader.GetDecimal(3);
-                                    int SourceAccountId = reader.GetInt32(4);
-                                    int TargetAccountId = reader.GetInt32(5);
-                                    Console.WriteLine($"Transaction ID: {Transaction_Id}");
-                                    Console.WriteLine($"Timestamp: {Timestamp}");
-                                    Console.WriteLine($"Type: {Type}");
-                                    Console.WriteLine($"Amount: {Amount} OMR");
-                                    Console.WriteLine($"Source Account: {SourceAccountId}");
-                                    Console.WriteLine($"Target Account: {TargetAccountId}");
-                                    Console.WriteLine("---------------------------");
-                                }
-                                Console.WriteLine("Press any key to continue...");
-                                Console.ReadKey();
-                                Console.Clear();
-                                return;
-                            }
-                            else
-                            {
-                                Console.WriteLine("No transaction history found.");
-                                Console.WriteLine("Press any key to continue...");
-                                Console.ReadKey();
-                                return;
-                            }
+                            Console.WriteLine($"Transaction ID: {transaction.T_Id}");
+                            Console.WriteLine($"Timestamp: {transaction.Timestamp}");
+                            Console.WriteLine($"Type: {transaction.Type}");
+                            Console.WriteLine($"Amount: {transaction.Amount} OMR");
+                            Console.WriteLine($"Source Account: {transaction.SorAccId}");
+                            Console.WriteLine($"Target Account: {transaction.TarAccId}");
+                            Console.WriteLine("---------------------------");
                         }
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadKey();
+                    }
+                    else
+                    {
+                        Console.WriteLine("No transaction history found.");
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadKey();
                     }
                 }
                 catch (Exception e)
@@ -424,10 +347,10 @@ namespace BankSystem_Using_Entity_Framework
                     Console.WriteLine("An error occurred: " + e.Message);
                     Console.WriteLine("Press any key to continue...");
                     Console.ReadKey();
-                    return;
                 }
             }
         }
-    } 
+
+    }
 }
 

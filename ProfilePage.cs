@@ -9,19 +9,17 @@ namespace BankSystem_Using_Entity_Framework
 {
     internal class ProfilePage
     {
-        public void profileMenu(User authenticatedUser)
+        public List<Account> userAccounts = new List<Account>();
+        public void profileMenu(User authenticatedUser, List<Account> userAccounts)
         {
+            var _context = new ApplicationDbContext();
             TransactionPage transaction = new TransactionPage();
             HomePage homePage = new HomePage();
             if (authenticatedUser != null)
             {
                 Console.WriteLine($"Welcome, {authenticatedUser.Name}\n\n");
 
-                using (var _context = new ApplicationDbContext())
-                {
-                    var userAccounts = _context.Accounts
-                        .Where(account => account.User_Id == authenticatedUser.User_Id)
-                        .ToList();
+                userAccounts = GetUserAccounts(authenticatedUser.User_Id);
 
                     if (userAccounts.Count > 0)
                     {
@@ -41,15 +39,13 @@ namespace BankSystem_Using_Entity_Framework
                         }
                     }
                     else { Console.WriteLine("You dont have any accounts. Please add one\n\n"); }
-                }
+                
             }
             else
             {
                 Console.WriteLine("Login failed");
                 homePage.mainMenu();
             }
-
-
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -70,7 +66,7 @@ namespace BankSystem_Using_Entity_Framework
                         break;
                     case "2":
                         Console.Clear();
-                        transaction.transactionMenu(authenticatedUser);
+                        transaction.transactionMenu(userAccounts, authenticatedUser);
                         break;
                     case "3":
                         Console.Clear();
@@ -93,7 +89,6 @@ namespace BankSystem_Using_Entity_Framework
                         Console.WriteLine("Invalid option. Please try again.");
                         break;
                 }
-                //Console.Clear();
             }
         }
         private void createAccount(User authenticatedUser)
@@ -115,7 +110,7 @@ namespace BankSystem_Using_Entity_Framework
             Console.WriteLine("Press Enter to go back...");
             Console.ReadLine();
             Console.Clear();
-            profileMenu(authenticatedUser);
+            profileMenu(authenticatedUser, userAccounts);
 
         }
         private static void insertAccount(decimal balance, int UserID, string AccountHolderName)
@@ -136,7 +131,7 @@ namespace BankSystem_Using_Entity_Framework
 
         }
 
-        private static List<Account> GetUserAccounts(int userId)
+        public static List<Account> GetUserAccounts(int userId)
         {
             using (var _context = new ApplicationDbContext())
             {
@@ -148,7 +143,7 @@ namespace BankSystem_Using_Entity_Framework
             }
         }
 
-        private void deleteAccount(User authenticatedUser, Account userAccounts)
+        private void deleteAccount(User authenticatedUser, List<Account> userAccount)
         {
             Console.Clear();
             Console.WriteLine("Delete Account");
@@ -162,12 +157,12 @@ namespace BankSystem_Using_Entity_Framework
                 return;
             }
             // Check if the provided account ID exists in the user's accounts
-            if (userAccounts != null)
+            if (userAccount != null)
             {
 
-                foreach (var account in userAccounts)
+                foreach (var account in userAccount)
                 {
-                    if (userAccounts.Any(account => account.Account_Id == accountIdToDelete))
+                    if (userAccount.Any(account => account.Account_Id == accountIdToDelete))
                     {
                         // Verify the provided email and password against the authenticated user's credentials
                         Console.Write("Enter your password to confirm deletion: ");
@@ -190,7 +185,7 @@ namespace BankSystem_Using_Entity_Framework
                     Console.WriteLine("Press Enter to go back...");
                     Console.ReadLine();
                     Console.Clear();
-                    profileMenu(authenticatedUser);
+                    return;
                 }
             }
         }
@@ -239,9 +234,7 @@ namespace BankSystem_Using_Entity_Framework
             Console.WriteLine("Press Enter to go back...");
             Console.ReadLine();
             Console.Clear();
-            profileMenu(authenticatedUser);
-
-
+            return;
         }
         private void deleteUserServer(int userIdToDelete)
         {
@@ -317,7 +310,8 @@ namespace BankSystem_Using_Entity_Framework
                         break;
                     case 6:
                         Console.Clear();
-                        return; // Exit the method
+                        profileMenu(authenticatedUser, userAccounts);
+                        return; // back method
                     default:
                         period = "Enter a valid option";
                         break;

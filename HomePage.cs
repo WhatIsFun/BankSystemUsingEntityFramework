@@ -8,12 +8,18 @@ using System.Threading.Tasks;
 
 namespace BankSystem_Using_Entity_Framework
 {
-    internal class HomePage
+    public class HomePage
     {
+        private List<Account> userAccounts;
+        public HomePage(List<Account> userAccounts)
+        {
+            this.userAccounts = userAccounts;
+        }
+        public HomePage() { }
         public void mainMenu()
         {
             Registeration registeration = new Registeration();
-            LoginPage loginPage = new LoginPage();
+            LoginPage loginPage = new LoginPage(userAccounts);
             ExchangeRateService exchangeRateService = new ExchangeRateService();
             CurrencyConverter currencyConverter = new CurrencyConverter();
 
@@ -37,7 +43,7 @@ namespace BankSystem_Using_Entity_Framework
                         registeration.Register();
                         break;
                     case "2":
-                        loginPage.Login();
+                        loginPage.Login(userAccounts);
                         break;
                     case "3":
                         exchangeRateService.ViewExchangeRates();
