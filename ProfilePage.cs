@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,9 +31,9 @@ namespace BankSystem_Using_Entity_Framework
                         foreach (var account in userAccounts)
                         {
                             Console.ForegroundColor = ConsoleColor.DarkYellow;
-                            Console.WriteLine($"Account Number: {account.Account_Id}");
+                            Console.WriteLine($"Account Number:      {account.Account_Id}");
                             Console.WriteLine($"Account Holder Name: {account.HolderName}");
-                            Console.WriteLine($"Account Balance: {account.Balance} OMR");
+                            Console.WriteLine($"Account Balance:     {account.Balance} OMR");
                             Console.ResetColor();
                             Console.WriteLine("____________________________________");
                             Console.WriteLine();
@@ -267,62 +268,92 @@ namespace BankSystem_Using_Entity_Framework
         {
             TransactionPage transaction = new TransactionPage();
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("View Transaction History:\n\n");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("1) Last transaction");
-            Console.WriteLine("2) Last day");
-            Console.WriteLine("3) Last 5 days");
-            Console.WriteLine("4) Last 1 month");
-            Console.WriteLine("5) Last 2 months");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("\n\n\n* If you want more than one month please contact or visit the nearest branch");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("6) Back to Menu");
-            Console.ResetColor();
-            Console.WriteLine("Enter an option: ");
-            if (int.TryParse(Console.ReadLine(), out int choice))
+            Console.Write("Enter the account number to view history: ");
+            if (!int.TryParse(Console.ReadLine(), out int viewAccId))
             {
-                string period;
-                switch (choice)
-                {
-                    case 1:
-                        Console.Clear();
-                        period = "last transaction";
-                        break;
-                    case 2:
-                        Console.Clear();
-                        period = "last day";
-                        break;
-                    case 3:
-                        Console.Clear();
-                        period = "last 5 days";
-                        break;
-                    case 4:
-                        Console.Clear();
-                        period = "last 1 month";
-                        break;
-                    case 5:
-                        Console.Clear();
-                        period = "last 2 months";
-                        break;
-                    case 6:
-                        Console.Clear();
-                        profileMenu(authenticatedUser, userAccounts);
-                        return; // back method
-                    default:
-                        period = "Enter a valid option";
-                        break;
-                }
-                transaction.ViewTransactionHistory(authenticatedUser, period);
+                Console.WriteLine("Invalid account number.");
+                return;
             }
-            else
+
+            using (var _context = new ApplicationDbContext())
             {
-                Console.WriteLine("Invalid input. Please enter a valid number.");
+                try
+                {
+                    var userAccount = _context.Accounts
+                        .Where(a => a.Account_Id == viewAccId && a.User.User_Id == authenticatedUser.User_Id)
+                        .FirstOrDefault();
+
+                    if (userAccount != null)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("View Transaction History:\n");
+
+                        Console.ResetColor();
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine("1) Last transaction");
+                        Console.WriteLine("2) Last day");
+                        Console.WriteLine("3) Last 5 days");
+                        Console.WriteLine("4) Last 1 month");
+                        Console.WriteLine("5) Last 2 months");
+                        Console.ResetColor();
+
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("\n\n* If you want more than two months, please contact or visit the nearest branch");
+                        Console.ResetColor();
+
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine("6) Back to Menu");
+                        Console.ResetColor();
+                        Console.WriteLine("Enter an option: ");
+
+                        if (int.TryParse(Console.ReadLine(), out int choice))
+                        {
+                            string period;
+                            switch (choice)
+                            {
+                                case 1:
+                                    period = "last transaction";
+                                    break;
+                                case 2:
+                                    period = "last day";
+                                    break;
+                                case 3:
+                                    period = "last 5 days";
+                                    break;
+                                case 4:
+                                    period = "last 1 month";
+                                    break;
+                                case 5:
+                                    period = "last 2 months";
+                                    break;
+                                case 6:
+                                    profileMenu(authenticatedUser, userAccounts);
+                                    return; // Back to the main menu
+                                default:
+                                    period = "Enter a valid option";
+                                    break;
+                            }
+
+                            transaction.ViewTransactionHistory(authenticatedUser, period, viewAccId);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid input. Please enter a valid number.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("The entered account number does not belong to you.");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("An error occurred: " + e.Message);
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey();
+                    profileMenu(authenticatedUser, userAccounts);
+                }
             }
         }
-
     }
 }

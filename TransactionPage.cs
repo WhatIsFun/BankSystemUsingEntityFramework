@@ -14,7 +14,6 @@ namespace BankSystem_Using_Entity_Framework
         public void transactionMenu(List<Account> userAccounts, User authenticatedUser)
         {
             ProfilePage profilePage = new ProfilePage();
-            //profilePage.userAccounts = userAccounts;
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("$$$ $$ $ Transaction $ $$ $$$\n");
             Console.ResetColor();
@@ -99,6 +98,9 @@ namespace BankSystem_Using_Entity_Framework
                     else
                     {
                         Console.WriteLine("Invalid deposit.");
+                        Console.WriteLine("\n\nPress Enter to go back...");
+                        Console.ReadLine();
+                        Console.Clear();
                         return;
                     }
                 }
@@ -111,6 +113,7 @@ namespace BankSystem_Using_Entity_Framework
         }
         void withdraw(List<Account> userAccounts)
         {
+            Console.Write("Enter the account number to withdraw: ");
             if (!int.TryParse(Console.ReadLine(), out int sourceAccountId))
             {
                 Console.WriteLine("Invalid account number.");
@@ -155,7 +158,10 @@ namespace BankSystem_Using_Entity_Framework
                     }
                     else
                     {
-                        Console.WriteLine("Invalid deposit.");
+                        Console.WriteLine("Invalid withdraw.");
+                        Console.WriteLine("\n\nPress Enter to go back...");
+                        Console.ReadLine();
+                        Console.Clear();
                         return;
                     }
                 }
@@ -236,12 +242,16 @@ namespace BankSystem_Using_Entity_Framework
                         else
                         {
                             Console.WriteLine("Insufficient funds for the transfer.");
+                            Console.WriteLine("\n\nPress Enter to go back...");
+                            Console.ReadLine();
+                            Console.Clear();
                             return;
                         }
                     }
                     catch (Exception e)
                     {
                         Console.WriteLine(e.Message);
+                        return;
                     }
                 }
             }
@@ -282,13 +292,14 @@ namespace BankSystem_Using_Entity_Framework
             }
         }
 
-        public void ViewTransactionHistory(User authenticatedUser, string period)
+        public void ViewTransactionHistory(User authenticatedUser, string period, int viewAccId)
         {
+            ProfilePage page = new ProfilePage();
             DateTime startDate;
             switch (period.ToLower())
             {
                 case "last transaction":
-                    startDate = DateTime.MinValue; // Set to minimum date
+                    startDate = DateTime.MaxValue; // Set to minimum date
                     break;
                 case "last day":
                     startDate = DateTime.Now.AddDays(-1);
@@ -312,34 +323,37 @@ namespace BankSystem_Using_Entity_Framework
             {
                 try
                 {
-                    var userId = authenticatedUser.User_Id;
-
                     var transactions = context.Transactions
-                        .Where(t => (t.SorAccId == userId || t.TarAccId == userId) && t.Timestamp >= startDate)
+                        .Where(t => (t.SorAccId == viewAccId || t.TarAccId == viewAccId) && t.Timestamp >= startDate)
                         .OrderByDescending(t => t.Timestamp)
                         .ToList();
 
                     if (transactions.Count > 0)
                     {
-                        Console.WriteLine($"Transaction History (Last {period}):");
+                        Console.WriteLine($"Transaction History (Last {period}) for account number {viewAccId}:");
                         foreach (var transaction in transactions)
                         {
                             Console.WriteLine($"Transaction ID: {transaction.T_Id}");
-                            Console.WriteLine($"Timestamp: {transaction.Timestamp}");
-                            Console.WriteLine($"Type: {transaction.Type}");
-                            Console.WriteLine($"Amount: {transaction.Amount} OMR");
+                            Console.WriteLine($"Timestamp:      {transaction.Timestamp}");
+                            Console.WriteLine($"Type:           {transaction.Type}");
+                            Console.WriteLine($"Amount:         {transaction.Amount} OMR");
                             Console.WriteLine($"Source Account: {transaction.SorAccId}");
                             Console.WriteLine($"Target Account: {transaction.TarAccId}");
                             Console.WriteLine("---------------------------");
                         }
                         Console.WriteLine("Press any key to continue...");
                         Console.ReadKey();
+                        Console.Clear();
+                        return;
+
                     }
                     else
                     {
                         Console.WriteLine("No transaction history found.");
                         Console.WriteLine("Press any key to continue...");
                         Console.ReadKey();
+                        Console.Clear();
+                        return;
                     }
                 }
                 catch (Exception e)
@@ -347,6 +361,8 @@ namespace BankSystem_Using_Entity_Framework
                     Console.WriteLine("An error occurred: " + e.Message);
                     Console.WriteLine("Press any key to continue...");
                     Console.ReadKey();
+                    Console.Clear();
+                    return;
                 }
             }
         }
